@@ -48,12 +48,7 @@ def test_parse_dependency_chain(parsed):
     assert len(adj) >= 1
     # SP depends on Copy
     sp_dep = next(
-        (
-            e
-            for e in adj
-            if "ValidateOrders" in e.get("to_task", "")
-            or "validate" in e.get("to_task", "").lower()
-        ),
+        (e for e in adj if "ValidateOrders" in e.get("to_task", "") or "validate" in e.get("to_task", "").lower()),
         None,
     )
     assert sp_dep is not None
@@ -94,11 +89,7 @@ def test_azure_linked_service_flagged(tmp_path):
 def test_foreach_flagged_manual(parsed):
     transforms = parsed["transformations"]
     foreach = next(
-        (
-            t
-            for t in transforms
-            if "FOREACH" in t.get("flag", "").upper() or "ForEach" in t.get("name", "")
-        ),
+        (t for t in transforms if "FOREACH" in t.get("flag", "").upper() or "ForEach" in t.get("name", "")),
         None,
     )
     assert foreach is not None

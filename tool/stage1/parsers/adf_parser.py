@@ -84,9 +84,7 @@ class AdfParser:
         for trigger in triggers:
             ttype = trigger.get("properties", {}).get("type", trigger.get("type", ""))
             if "Schedule" in ttype or "Tumbling" in ttype:
-                recurrence = trigger.get("properties", {}).get("recurrence", {}) or trigger.get(
-                    "recurrence", {}
-                )
+                recurrence = trigger.get("properties", {}).get("recurrence", {}) or trigger.get("recurrence", {})
                 cron_expression = self._recurrence_to_cron(recurrence)
 
         # Parse activities
@@ -158,9 +156,7 @@ class AdfParser:
                     df_transforms = self._parse_data_flow(str(df_path), manual_items)
                     transformations.extend(df_transforms)
                 else:
-                    manual_items.append(
-                        f"[MANUAL: DATA FLOW FILE NOT FOUND] {df_name}.json — resolve manually"
-                    )
+                    manual_items.append(f"[MANUAL: DATA FLOW FILE NOT FOUND] {df_name}.json — resolve manually")
                     transformations.append(
                         {
                             "transform_id": act_id,

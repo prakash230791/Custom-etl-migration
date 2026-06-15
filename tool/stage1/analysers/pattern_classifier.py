@@ -11,9 +11,7 @@ class PatternClassifier:
         phase3_detected = self._detect_phase3(transforms)
 
         pattern = (
-            "THREE_PHASE_STATIC_LOAD"
-            if (phase1_detected and phase2_detected and phase3_detected)
-            else "GENERAL_ETL"
+            "THREE_PHASE_STATIC_LOAD" if (phase1_detected and phase2_detected and phase3_detected) else "GENERAL_ETL"
         )
 
         phase1_tasks = [t["transform_id"] for t in transforms if self._is_phase1_task(t)]

@@ -1,4 +1,5 @@
 """Requirements writer — Sprint 1 implementation."""
+
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -79,18 +80,12 @@ class RequirementsWriter:
                 "query_or_path": src.get("query_or_path", ""),
                 "row_count_estimate": "[MANUAL INPUT REQUIRED]",
             }
-            lines.append(
-                "```yaml\n"
-                + yaml.dump(block, default_flow_style=False, sort_keys=False).strip()
-                + "\n```"
-            )
+            lines.append("```yaml\n" + yaml.dump(block, default_flow_style=False, sort_keys=False).strip() + "\n```")
         return "\n".join(lines)
 
     def _section_data_targets(self, p: dict) -> str:
         lines = ["## §3 Data Targets"]
-        targets = [
-            t for t in p.get("transformations", []) if t.get("transform_type") == "target_write"
-        ]
+        targets = [t for t in p.get("transformations", []) if t.get("transform_type") == "target_write"]
         if not targets:
             lines.append("No data targets detected.")
         for tgt in targets:
@@ -103,20 +98,12 @@ class RequirementsWriter:
                 "target_table": tgt.get("target_table", "[MANUAL INPUT REQUIRED]"),
                 "write_mode": tgt.get("write_mode", "truncate_insert"),
             }
-            lines.append(
-                "```yaml\n"
-                + yaml.dump(block, default_flow_style=False, sort_keys=False).strip()
-                + "\n```"
-            )
+            lines.append("```yaml\n" + yaml.dump(block, default_flow_style=False, sort_keys=False).strip() + "\n```")
         return "\n".join(lines)
 
     def _section_transformations(self, p: dict) -> str:
         lines = ["## §4 Transformations"]
-        transforms = [
-            t
-            for t in p.get("transformations", [])
-            if t.get("transform_type") not in ("target_write",)
-        ]
+        transforms = [t for t in p.get("transformations", []) if t.get("transform_type") not in ("target_write",)]
         if not transforms:
             lines.append("No transformations detected.")
         for t in transforms:
@@ -126,11 +113,7 @@ class RequirementsWriter:
             if "flag" in t:
                 lines.append(f"> **{t['flag']}**")
             block = {k: v for k, v in t.items() if k not in ("name",)}
-            lines.append(
-                "```yaml\n"
-                + yaml.dump(block, default_flow_style=False, sort_keys=False).strip()
-                + "\n```"
-            )
+            lines.append("```yaml\n" + yaml.dump(block, default_flow_style=False, sort_keys=False).strip() + "\n```")
         return "\n".join(lines)
 
     def _section_business_rules(self, p: dict) -> str:
@@ -147,24 +130,16 @@ class RequirementsWriter:
         if adj:
             lines.append("\n### Adjacency List")
             block = {"adjacency_list": adj}
-            lines.append(
-                "```yaml\n"
-                + yaml.dump(block, default_flow_style=False, sort_keys=False).strip()
-                + "\n```"
-            )
+            lines.append("```yaml\n" + yaml.dump(block, default_flow_style=False, sort_keys=False).strip() + "\n```")
         return "\n".join(lines)
 
     def _section_error_handling(self, p: dict) -> str:
         lines = ["## §7 Error Handling"]
         handlers = p.get("error_handling", [])
         if not handlers:
-            lines.append(
-                "No event handlers detected. Default Step Functions error handling applies."
-            )
+            lines.append("No event handlers detected. Default Step Functions error handling applies.")
         for h in handlers:
-            lines.append(
-                f"\n**{h.get('handler_type', 'Unknown')}**: {', '.join(h.get('actions', []))}"
-            )
+            lines.append(f"\n**{h.get('handler_type', 'Unknown')}**: {', '.join(h.get('actions', []))}")
         return "\n".join(lines)
 
     def _section_schedule(self, p: dict) -> str:
@@ -191,9 +166,7 @@ class RequirementsWriter:
         if not deps:
             lines.append("No child package dependencies detected.")
         for dep in deps:
-            lines.append(
-                f"- **{dep.get('name', '')}** ({dep.get('type', '')}): `{dep.get('path', '')}`"
-            )
+            lines.append(f"- **{dep.get('name', '')}** ({dep.get('type', '')}): `{dep.get('path', '')}`")
         return "\n".join(lines)
 
     def _section_assumptions(self, p: dict) -> str:

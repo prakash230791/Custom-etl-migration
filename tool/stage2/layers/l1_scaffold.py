@@ -1,4 +1,8 @@
+from pathlib import Path
+
 from jinja2 import Environment, FileSystemLoader
+
+_DEFAULT_TEMPLATES_DIR = Path(__file__).parent.parent.parent / "templates"
 
 
 class L1Scaffold:
@@ -10,9 +14,11 @@ class L1Scaffold:
         ("aurora_ddl.j2", "db-migrations/V001__{job_name}.sql"),
     ]
 
-    def __init__(self, templates_dir: str = "tool/templates"):
+    def __init__(self, templates_dir: str | Path | None = None):
+        if templates_dir is None:
+            templates_dir = _DEFAULT_TEMPLATES_DIR
         self.env = Environment(
-            loader=FileSystemLoader(templates_dir),
+            loader=FileSystemLoader(str(templates_dir)),
             keep_trailing_newline=True,
         )
 

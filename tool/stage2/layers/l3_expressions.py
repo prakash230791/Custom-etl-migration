@@ -7,6 +7,7 @@ import yaml
 class L3ExpressionTranslator:
     def __init__(self, prompts_path: str = "tool/config/llm_prompts.yaml"):
         import anthropic
+
         self.client = anthropic.Anthropic()
         with open(prompts_path) as f:
             self.prompts = yaml.safe_load(f)

@@ -1,4 +1,5 @@
 """SSIS parser — Sprint 1 implementation."""
+
 import re
 import xml.etree.ElementTree as ET
 
@@ -55,22 +56,26 @@ class SsisParser:
             dtype = var.get(self._dts("DataType"), "")
             value_el = var.find(self._dts("VariableValue"))
             value = value_el.text if value_el is not None else ""
-            params.append({
-                "name": name,
-                "type": "variable",
-                "data_type": dtype,
-                "value": value,
-            })
+            params.append(
+                {
+                    "name": name,
+                    "type": "variable",
+                    "data_type": dtype,
+                    "value": value,
+                }
+            )
         for param in root.iter(self._dts("PackageParameter")):
             name = param.get(self._dts("ObjectName"), "")
             dtype = param.get(self._dts("DataType"), "")
             default = param.get(self._dts("DefaultValue"), "")
-            params.append({
-                "name": name,
-                "type": "parameter",
-                "data_type": dtype,
-                "default_value": default,
-            })
+            params.append(
+                {
+                    "name": name,
+                    "type": "parameter",
+                    "data_type": dtype,
+                    "default_value": default,
+                }
+            )
         return params
 
     def _extract_data_sources(self, root, manual_items) -> list:
@@ -92,13 +97,15 @@ class SsisParser:
                 for conn_mgr in comp.iter(self._pipeline("connection")):
                     conn_ref = conn_mgr.get(self._pipeline("description"), conn_mgr.get(self._pipeline("name"), ""))
                     break
-                sources.append({
-                    "source_id": name.lower().replace(" ", "_"),
-                    "connection_ref": conn_ref,
-                    "source_type": "query" if "SELECT" in query_or_path.upper() else "table",
-                    "query_or_path": query_or_path,
-                    "connection_type": "jdbc",
-                })
+                sources.append(
+                    {
+                        "source_id": name.lower().replace(" ", "_"),
+                        "connection_ref": conn_ref,
+                        "source_type": "query" if "SELECT" in query_or_path.upper() else "table",
+                        "query_or_path": query_or_path,
+                        "connection_type": "jdbc",
+                    }
+                )
         # Execute SQL Tasks that are SELECTs
         for exe in root.iter(self._dts("Executable")):
             exe_type = exe.get(self._dts("ExecutableType"), "")
@@ -110,13 +117,15 @@ class SsisParser:
                         sql_stmt = sql_task.get(self._sqltask("SqlStatementSource"), "")
                         if sql_stmt and "SELECT" in sql_stmt.upper() and "INSERT" not in sql_stmt.upper():
                             name = exe.get(self._dts("ObjectName"), "sql_source")
-                            sources.append({
-                                "source_id": name.lower().replace(" ", "_"),
-                                "connection_ref": sql_task.get(self._sqltask("Connection"), ""),
-                                "source_type": "query",
-                                "query_or_path": sql_stmt,
-                                "connection_type": "jdbc",
-                            })
+                            sources.append(
+                                {
+                                    "source_id": name.lower().replace(" ", "_"),
+                                    "connection_ref": sql_task.get(self._sqltask("Connection"), ""),
+                                    "source_type": "query",
+                                    "query_or_path": sql_stmt,
+                                    "connection_type": "jdbc",
+                                }
+                            )
         return sources
 
     def _extract_transformations(self, root, manual_items) -> list:
@@ -132,24 +141,28 @@ class SsisParser:
                     for col in output.iter(self._pipeline("outputColumn")):
                         col_name = col.get(self._pipeline("name"), "")
                         expressions.append({"output_column": col_name, "expression": ""})
-                transforms.append({
-                    "transform_id": tid,
-                    "transform_type": "derive",
-                    "name": name,
-                    "expressions": expressions,
-                })
+                transforms.append(
+                    {
+                        "transform_id": tid,
+                        "transform_type": "derive",
+                        "name": name,
+                        "expressions": expressions,
+                    }
+                )
             elif "Lookup" in class_id:
                 no_match = "redirect"
                 for prop in comp.iter(self._pipeline("property")):
                     if prop.get(self._pipeline("name"), "") == "NoMatchBehavior":
                         no_match = prop.text or "redirect"
-                transforms.append({
-                    "transform_id": tid,
-                    "transform_type": "join",
-                    "name": name,
-                    "join_type": "left",
-                    "no_match_behaviour": no_match,
-                })
+                transforms.append(
+                    {
+                        "transform_id": tid,
+                        "transform_type": "join",
+                        "name": name,
+                        "join_type": "left",
+                        "no_match_behaviour": no_match,
+                    }
+                )
             elif "ConditionalSplit" in class_id:
                 conditions = []
                 for output in comp.iter(self._pipeline("output")):
@@ -157,21 +170,25 @@ class SsisParser:
                     for prop in output.iter(self._pipeline("property")):
                         if prop.get(self._pipeline("name"), "") == "Expression":
                             conditions.append({"name": cond_name, "expression": prop.text or ""})
-                transforms.append({
-                    "transform_id": tid,
-                    "transform_type": "filter",
-                    "name": name,
-                    "conditions": conditions,
-                })
+                transforms.append(
+                    {
+                        "transform_id": tid,
+                        "transform_type": "filter",
+                        "name": name,
+                        "conditions": conditions,
+                    }
+                )
             elif "ScriptComponent" in class_id or ("Script" in class_id and "Component" in class_id):
                 flag = "[MANUAL: SCRIPT COMPONENT C#]"
                 manual_items.append(flag)
-                transforms.append({
-                    "transform_id": tid,
-                    "transform_type": "manual",
-                    "name": name,
-                    "flag": flag,
-                })
+                transforms.append(
+                    {
+                        "transform_id": tid,
+                        "transform_type": "manual",
+                        "name": name,
+                        "flag": flag,
+                    }
+                )
             elif "OleDbDestination" in class_id or "DTSAdapter.OleDbDestination" in class_id:
                 table_name = ""
                 conn_ref = ""
@@ -181,14 +198,16 @@ class SsisParser:
                 for conn_mgr in comp.iter(self._pipeline("connection")):
                     conn_ref = conn_mgr.get(self._pipeline("description"), "")
                     break
-                transforms.append({
-                    "transform_id": tid,
-                    "transform_type": "target_write",
-                    "name": name,
-                    "target_table": table_name,
-                    "connection_ref": conn_ref,
-                    "write_mode": "truncate_insert",
-                })
+                transforms.append(
+                    {
+                        "transform_id": tid,
+                        "transform_type": "target_write",
+                        "name": name,
+                        "target_table": table_name,
+                        "connection_ref": conn_ref,
+                        "write_mode": "truncate_insert",
+                    }
+                )
         # Execute SQL Tasks — SP calls and DML
         for exe in root.iter(self._dts("Executable")):
             exe_type = exe.get(self._dts("ExecutableType"), "")
@@ -203,30 +222,34 @@ class SsisParser:
                         tid = name.lower().replace(" ", "_")
                         if sql_stmt and "SELECT" not in sql_stmt.upper():
                             sp_name = ""
-                            if re.search(r'\b(?:EXEC(?:UTE)?|CALL)\b', sql_stmt, re.IGNORECASE):
-                                m = re.search(r'(?:EXEC(?:UTE)?|CALL)\s+([\w.]+)', sql_stmt, re.IGNORECASE)
+                            if re.search(r"\b(?:EXEC(?:UTE)?|CALL)\b", sql_stmt, re.IGNORECASE):
+                                m = re.search(r"(?:EXEC(?:UTE)?|CALL)\s+([\w.]+)", sql_stmt, re.IGNORECASE)
                                 if m:
                                     sp_name = m.group(1)
-                            transforms.append({
-                                "transform_id": tid,
-                                "transform_type": "sp_call" if sp_name else "sql_task",
-                                "name": name,
-                                "sp_name": sp_name,
-                                "sql_statement": sql_stmt,
-                                "connection_ref": conn,
-                                "sp_rewrite_strategy": "keep_plpgsql",
-                                "sp_estimated_duration_minutes": 5,
-                            })
+                            transforms.append(
+                                {
+                                    "transform_id": tid,
+                                    "transform_type": "sp_call" if sp_name else "sql_task",
+                                    "name": name,
+                                    "sp_name": sp_name,
+                                    "sql_statement": sql_stmt,
+                                    "connection_ref": conn,
+                                    "sp_rewrite_strategy": "keep_plpgsql",
+                                    "sp_estimated_duration_minutes": 5,
+                                }
+                            )
             elif "ForEachEnumerator" in exe_type or "ForEach" in exe_type:
                 name = exe.get(self._dts("ObjectName"), "foreach")
                 flag = "[MANUAL: FOREACH ITERATION]"
                 manual_items.append(flag)
-                transforms.append({
-                    "transform_id": name.lower().replace(" ", "_"),
-                    "transform_type": "manual",
-                    "name": name,
-                    "flag": flag,
-                })
+                transforms.append(
+                    {
+                        "transform_id": name.lower().replace(" ", "_"),
+                        "transform_type": "manual",
+                        "name": name,
+                        "flag": flag,
+                    }
+                )
         return transforms
 
     def _extract_control_flow(self, root) -> dict:
@@ -258,9 +281,11 @@ class SsisParser:
             exe_type = exe.get(self._dts("ExecutableType"), "")
             if "ExecutePackageTask" in exe_type:
                 name = exe.get(self._dts("ObjectName"), "")
-                deps.append({
-                    "name": name,
-                    "type": "child_package",
-                    "path": "[MANUAL: resolve child package path]",
-                })
+                deps.append(
+                    {
+                        "name": name,
+                        "type": "child_package",
+                        "path": "[MANUAL: resolve child package path]",
+                    }
+                )
         return deps

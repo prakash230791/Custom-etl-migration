@@ -74,14 +74,17 @@ class L4IdiomScanner:
                     if isinstance(arg, ast.Lambda):
                         for subnode in ast.walk(arg.body):
                             if isinstance(subnode, ast.Attribute) and subnode.attr in (
-                                "cursor", "connect", "execute", "callproc"
+                                "cursor",
+                                "connect",
+                                "execute",
+                                "callproc",
                             ):
                                 violations.append(_make_violation("L4-R03", getattr(node, "lineno", 0)))
                                 break
 
         # Regex fallback: check for map/foreach containing db keywords on same or adjacent lines
-        map_pattern = re.compile(r'\.(map|foreach|flatMap)\s*\(')
-        db_pattern = re.compile(r'\.(cursor|execute|callproc|connect)\(')
+        map_pattern = re.compile(r"\.(map|foreach|flatMap)\s*\(")
+        db_pattern = re.compile(r"\.(cursor|execute|callproc|connect)\(")
         lines = code.splitlines()
         for i, line in enumerate(lines):
             if map_pattern.search(line):

@@ -1,21 +1,24 @@
 import json
 from unittest.mock import MagicMock, patch
 
-import pytest
 
-MOCK_HIGH = json.dumps({
-    "expression": "when(col('CustomerName').isNull(), 'Unknown').otherwise(trim(col('CustomerName')))",
-    "confidence": 88,
-    "behaviour_notes": [],
-    "manual_review_required": False,
-})
+MOCK_HIGH = json.dumps(
+    {
+        "expression": "when(col('CustomerName').isNull(), 'Unknown').otherwise(trim(col('CustomerName')))",
+        "confidence": 88,
+        "behaviour_notes": [],
+        "manual_review_required": False,
+    }
+)
 
-MOCK_LOW = json.dumps({
-    "expression": "col('SomeComplexField')",
-    "confidence": 45,
-    "behaviour_notes": ["Could not determine exact behaviour"],
-    "manual_review_required": True,
-})
+MOCK_LOW = json.dumps(
+    {
+        "expression": "col('SomeComplexField')",
+        "confidence": 45,
+        "behaviour_notes": ["Could not determine exact behaviour"],
+        "manual_review_required": True,
+    }
+)
 
 CTX = {
     "source_system": "SSIS",
@@ -29,9 +32,11 @@ CTX = {
 def _make_translator():
     with patch("anthropic.Anthropic"):
         from tool.stage2.layers.l3_expressions import L3ExpressionTranslator
+
         t = L3ExpressionTranslator.__new__(L3ExpressionTranslator)
         t.client = MagicMock()
         import yaml
+
         with open("tool/config/llm_prompts.yaml") as f:
             t.prompts = yaml.safe_load(f)
         return t
@@ -63,7 +68,9 @@ def test_confidence_below_70_forces_manual_review():
 
 def test_confidence_at_70_not_forced_manual():
     t = _make_translator()
-    response = json.dumps({"expression": "col('x')", "confidence": 70, "behaviour_notes": [], "manual_review_required": False})
+    response = json.dumps(
+        {"expression": "col('x')", "confidence": 70, "behaviour_notes": [], "manual_review_required": False}
+    )
     with patch.object(t, "_call_api", return_value=response):
         result = t.translate(CTX)
     assert result["manual_review_required"] is False
@@ -133,7 +140,11 @@ def test_script_component_uses_extended_prompt():
         calls.append(ctx)
         return MOCK_HIGH
 
-    ctx = {**CTX, "expression_type": "custom_logic", "expression": "public void Input0_ProcessInputRow(Input0Buffer Row) { Row.OutCol = Row.InCol.Trim(); }"}
+    ctx = {
+        **CTX,
+        "expression_type": "custom_logic",
+        "expression": "public void Input0_ProcessInputRow(Input0Buffer Row) { Row.OutCol = Row.InCol.Trim(); }",
+    }
     with patch.object(t, "_call_api", side_effect=capture_call):
         t.translate(ctx)
     assert len(calls) == 1
@@ -149,12 +160,14 @@ def test_prompts_loaded_from_yaml_not_hardcoded():
 
 def test_behaviour_notes_preserved():
     t = _make_translator()
-    response = json.dumps({
-        "expression": "col('x')",
-        "confidence": 80,
-        "behaviour_notes": ["null handling differs"],
-        "manual_review_required": False,
-    })
+    response = json.dumps(
+        {
+            "expression": "col('x')",
+            "confidence": 80,
+            "behaviour_notes": ["null handling differs"],
+            "manual_review_required": False,
+        }
+    )
     with patch.object(t, "_call_api", return_value=response):
         result = t.translate(CTX)
     assert "null handling differs" in result["behaviour_notes"]
@@ -162,6 +175,7 @@ def test_behaviour_notes_preserved():
 
 def test_qa3_flags_manual_with_high_confidence():
     from tool.stage2.qa.qa_pipeline import QAPipeline
+
     pipeline = QAPipeline()
     l3_results = [{"expression": "col('x')", "confidence": 75, "manual_review_required": True}]
     findings = pipeline._run_qa3_expression_confidence(l3_results)
@@ -171,6 +185,7 @@ def test_qa3_flags_manual_with_high_confidence():
 
 def test_qa3_no_finding_for_normal_manual():
     from tool.stage2.qa.qa_pipeline import QAPipeline
+
     pipeline = QAPipeline()
     l3_results = [{"expression": "[MANUAL: L3 FAILURE]", "confidence": 0, "manual_review_required": True}]
     findings = pipeline._run_qa3_expression_confidence(l3_results)
@@ -179,6 +194,7 @@ def test_qa3_no_finding_for_normal_manual():
 
 def test_qa3_wired_into_qa_pipeline():
     from tool.stage2.qa.qa_pipeline import QAPipeline
+
     pipeline = QAPipeline()
     l3_results = [{"expression": "col('x')", "confidence": 72, "manual_review_required": True}]
     result = pipeline.run({}, [], {"l3_results": l3_results})

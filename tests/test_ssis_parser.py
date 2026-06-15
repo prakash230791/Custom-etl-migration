@@ -24,6 +24,7 @@ def test_parse_extracts_oledb_source(parsed):
 
 def test_parse_never_stores_credentials(parsed):
     import json
+
     text = json.dumps(parsed)
     # The connection string value "[REDACTED — never store credentials]" should NOT be
     # present in the parsed result — the parser must only store the connection name/ref

@@ -21,7 +21,7 @@ def _map_type(sql_type: str, type_mappings: dict, ambiguous: set) -> str:
     if mapped:
         # If original had length/precision, keep it unless base type changes
         if base in ("DECIMAL", "NUMERIC", "CHAR", "NCHAR") and "(" in sql_type:
-            precision = sql_type[sql_type.index("("):]
+            precision = sql_type[sql_type.index("(") :]
             return f"{mapped}{precision}"
         return mapped
     return f"{sql_type}  -- [VERIFY TYPE: unknown SQL Server type]"

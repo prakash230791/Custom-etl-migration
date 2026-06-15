@@ -1,4 +1,5 @@
 """Expression normaliser — Sprint 1 implementation."""
+
 import re
 from dataclasses import dataclass
 

@@ -1,4 +1,4 @@
-_LAMBDA_TEMPLATE = '''\
+_LAMBDA_TEMPLATE = """\
 # Generated Lambda function: {sp_name}
 # Pattern: keep_plpgsql (P2-R1)
 
@@ -63,9 +63,9 @@ def lambda_handler(event, context):
 
     finally:
         conn.close()
-'''
+"""
 
-_GLUE_SHELL_TEMPLATE = '''\
+_GLUE_SHELL_TEMPLATE = """\
 # Generated Glue Python Shell job: {sp_name}
 # WARNING (P2-R5): sp_estimated_duration_minutes={duration}min > 12 — using Glue Python Shell
 # with waitForTaskToken pattern instead of Lambda.
@@ -116,7 +116,7 @@ except psycopg2.Error:
     raise
 finally:
     conn.close()
-'''
+"""
 
 
 class LambdaFnGenerator:

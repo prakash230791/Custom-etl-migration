@@ -15,43 +15,47 @@ def _make_parsed(transforms, adjacency=None):
 
 
 def test_detects_three_phase_pattern(classifier):
-    parsed = _make_parsed([
-        {
-            "transform_id": "src1",
-            "transform_type": "source_read",
-            "target_table": "staging.tmp_orders",
-            "sql_statement": "",
-            "name": "source1",
-        },
-        {
-            "transform_id": "sp1",
-            "transform_type": "sp_call",
-            "sp_name": "dbo.usp_Process",
-            "sql_statement": "",
-            "name": "sp1",
-        },
-        {
-            "transform_id": "load1",
-            "transform_type": "target_write",
-            "target_table": "public.orders",
-            "sql_statement": "",
-            "name": "load orders",
-        },
-    ])
+    parsed = _make_parsed(
+        [
+            {
+                "transform_id": "src1",
+                "transform_type": "source_read",
+                "target_table": "staging.tmp_orders",
+                "sql_statement": "",
+                "name": "source1",
+            },
+            {
+                "transform_id": "sp1",
+                "transform_type": "sp_call",
+                "sp_name": "dbo.usp_Process",
+                "sql_statement": "",
+                "name": "sp1",
+            },
+            {
+                "transform_id": "load1",
+                "transform_type": "target_write",
+                "target_table": "public.orders",
+                "sql_statement": "",
+                "name": "load orders",
+            },
+        ]
+    )
     result = classifier.classify(parsed)
     assert result["pattern"] == "THREE_PHASE_STATIC_LOAD"
 
 
 def test_detects_general_etl(classifier):
-    parsed = _make_parsed([
-        {
-            "transform_id": "t1",
-            "transform_type": "join",
-            "sql_statement": "",
-            "name": "join",
-            "target_table": "",
-        },
-    ])
+    parsed = _make_parsed(
+        [
+            {
+                "transform_id": "t1",
+                "transform_type": "join",
+                "sql_statement": "",
+                "name": "join",
+                "target_table": "",
+            },
+        ]
+    )
     result = classifier.classify(parsed)
     assert result["pattern"] == "GENERAL_ETL"
 
@@ -127,22 +131,24 @@ def test_empty_transforms_gives_general_etl(classifier):
 
 
 def test_phase_boundaries_populated(classifier):
-    parsed = _make_parsed([
-        {
-            "transform_id": "src1",
-            "transform_type": "source_read",
-            "target_table": "",
-            "sql_statement": "",
-            "name": "src1",
-        },
-        {
-            "transform_id": "sp1",
-            "transform_type": "sp_call",
-            "sp_name": "sp1",
-            "sql_statement": "",
-            "name": "sp1",
-        },
-    ])
+    parsed = _make_parsed(
+        [
+            {
+                "transform_id": "src1",
+                "transform_type": "source_read",
+                "target_table": "",
+                "sql_statement": "",
+                "name": "src1",
+            },
+            {
+                "transform_id": "sp1",
+                "transform_type": "sp_call",
+                "sp_name": "sp1",
+                "sql_statement": "",
+                "name": "sp1",
+            },
+        ]
+    )
     result = classifier.classify(parsed)
     assert "phase_boundaries" in result
     pb = result["phase_boundaries"]

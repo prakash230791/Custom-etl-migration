@@ -74,23 +74,26 @@ class QAPipeline:
                 continue
             test_key = f"test_{transform_id}_standard"
             if test_key not in all_test_content:
-                findings.append({
-                    "gate": "QA-6",
-                    "severity": "WARNING",
-                    "message": f"No test generated for transform {transform_id}",
-                })
+                findings.append(
+                    {
+                        "gate": "QA-6",
+                        "severity": "WARNING",
+                        "message": f"No test generated for transform {transform_id}",
+                    }
+                )
         return findings
 
     def _run_qa3_expression_confidence(self, l3_results: list) -> list:
         findings = []
         for result in l3_results:
             if result.get("manual_review_required") and result.get("confidence", 0) >= 70:
-                findings.append({
-                    "gate": "QA-3",
-                    "severity": "WARNING",
-                    "message": (
-                        f"Expression marked manual_review_required despite confidence "
-                        f"{result['confidence']}"
-                    ),
-                })
+                findings.append(
+                    {
+                        "gate": "QA-3",
+                        "severity": "WARNING",
+                        "message": (
+                            f"Expression marked manual_review_required despite confidence {result['confidence']}"
+                        ),
+                    }
+                )
         return findings

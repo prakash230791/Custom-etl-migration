@@ -87,8 +87,8 @@ class L2Pipeline:
             lines.append(f"df_{source_id} = spark.read.format('{connection_type}').load('{query}')")
 
         audit_insert = (
-            f"    cur.execute(\"INSERT INTO audit.phase1_load"
-            f" (job_name, source_id, rows_loaded, batch_id) VALUES (%s, %s, %s, %s)\","
+            f'    cur.execute("INSERT INTO audit.phase1_load'
+            f' (job_name, source_id, rows_loaded, batch_id) VALUES (%s, %s, %s, %s)",'
             f" (job_name, '{source_id}', df_{source_id}.count(), batch_id))"
         )
         lines += [
@@ -107,8 +107,8 @@ class L2Pipeline:
         lines = []
         if write_mode == "truncate_insert":
             audit_line = (
-                f"        cur.execute(\"INSERT INTO audit.phase3_load"
-                f" (job_name, target_table, batch_id) VALUES (%s, %s, %s)\","
+                f'        cur.execute("INSERT INTO audit.phase3_load'
+                f' (job_name, target_table, batch_id) VALUES (%s, %s, %s)",'
                 f" (job_name, '{target_table}', batch_id))"
             )
             lines += [
@@ -129,8 +129,8 @@ class L2Pipeline:
             ]
         elif write_mode == "upsert":
             audit_line = (
-                f"        cur.execute(\"INSERT INTO audit.phase3_load"
-                f" (job_name, target_table, batch_id) VALUES (%s, %s, %s)\","
+                f'        cur.execute("INSERT INTO audit.phase3_load'
+                f' (job_name, target_table, batch_id) VALUES (%s, %s, %s)",'
                 f" (job_name, '{target_table}', batch_id))"
             )
             lines += [
@@ -150,8 +150,8 @@ class L2Pipeline:
             ]
         else:
             audit_line = (
-                f"        cur.execute(\"INSERT INTO audit.phase3_load"
-                f" (job_name, target_table, batch_id) VALUES (%s, %s, %s)\","
+                f'        cur.execute("INSERT INTO audit.phase3_load'
+                f' (job_name, target_table, batch_id) VALUES (%s, %s, %s)",'
                 f" (job_name, '{target_table}', batch_id))"
             )
             lines += [
@@ -192,13 +192,12 @@ class L2Pipeline:
         warning = None
         if duration and int(duration) > 12:
             warning = (
-                f"P2-R5 WARNING: {sp_name} estimated {duration}min > 12"
-                " — consider Glue Python Shell + waitForTaskToken"
+                f"P2-R5 WARNING: {sp_name} estimated {duration}min > 12 — consider Glue Python Shell + waitForTaskToken"
             )
 
         audit_line = (
-            f"        cur.execute(\"INSERT INTO audit.sp_execution_log"
-            f" (job_name, sp_name, status) VALUES (%s, %s, %s)\","
+            f'        cur.execute("INSERT INTO audit.sp_execution_log'
+            f' (job_name, sp_name, status) VALUES (%s, %s, %s)",'
             f" (job_name, '{sp_name}', 'SUCCESS'))"
         )
         lines = [

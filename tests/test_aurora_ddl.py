@@ -14,7 +14,8 @@ def _ctx(columns=None):
         "staging_tables": [
             {
                 "table_name": "staging.tmp_orders",
-                "columns": columns or [
+                "columns": columns
+                or [
                     {"name": "order_id", "sql_type": "INT", "nullable": False},
                     {"name": "customer_id", "sql_type": "INT", "nullable": True},
                     {"name": "amount", "sql_type": "DECIMAL(18,2)", "nullable": True},

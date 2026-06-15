@@ -112,11 +112,7 @@ def test_r09_autocommit_false_not_flagged(scanner):
 
 
 def test_clean_code_no_violations(scanner):
-    code = (
-        "import pyspark\n"
-        "df = spark.read.table('orders')\n"
-        "result = df.filter('id > 0')\n"
-    )
+    code = "import pyspark\ndf = spark.read.table('orders')\nresult = df.filter('id > 0')\n"
     _, violations = scanner.scan(code)
     security_violations = [v for v in violations if v["rule_id"] in ("L4-R05", "L4-R10")]
     assert not security_violations

@@ -33,15 +33,17 @@ class L5TestGenerator:
             transform_id = block.get("transform_id", "unknown")
             transform_type = block.get("transform_type", "unknown")
             fixture = self._generate_fixture_data(block)
-            transforms.append({
-                "transform_id": transform_id,
-                "transform_type": transform_type,
-                "natural_language_description": self._describe(block),
-                "input_schema_fields": fixture.get("input_schema_fields", _DEFAULT_SCHEMA_FIELDS),
-                "output_schema_fields": fixture.get("output_schema_fields", _DEFAULT_SCHEMA_FIELDS),
-                "input_fixture_data": fixture.get("input_fixture_data", _DEFAULT_INPUT),
-                "null_fixture_data": fixture.get("null_fixture_data", _DEFAULT_NULL),
-            })
+            transforms.append(
+                {
+                    "transform_id": transform_id,
+                    "transform_type": transform_type,
+                    "natural_language_description": self._describe(block),
+                    "input_schema_fields": fixture.get("input_schema_fields", _DEFAULT_SCHEMA_FIELDS),
+                    "output_schema_fields": fixture.get("output_schema_fields", _DEFAULT_SCHEMA_FIELDS),
+                    "input_fixture_data": fixture.get("input_fixture_data", _DEFAULT_INPUT),
+                    "null_fixture_data": fixture.get("null_fixture_data", _DEFAULT_NULL),
+                }
+            )
 
         template = self.env.get_template("unit_test_skeleton.j2")
         content = template.render(job_name=job_name, transforms=transforms)

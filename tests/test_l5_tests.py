@@ -1,8 +1,6 @@
 import ast
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 
 SPEC_BLOCKS = [
     {"transform_id": "source_orders", "transform_type": "source_read"},
