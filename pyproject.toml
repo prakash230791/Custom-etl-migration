@@ -33,3 +33,9 @@ select = ["E", "F", "W"]
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["tool*"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.0",
+    "ruff>=0.15.17",
+]
