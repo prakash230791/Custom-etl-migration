@@ -1,0 +1,50 @@
+import psycopg2
+import boto3
+import os
+
+
+def phase3_load_{{ target_table }}(conn, batch_id: str) -> None:
+    """P3-R1: Single transaction per FK group. P3-R3: truncate_insert pattern."""
+    try:
+        with conn.cursor() as cur:
+{% if write_mode == "truncate_insert" %}
+            # P3-R3: truncate_insert
+            cur.execute("BEGIN")
+            cur.execute("TRUNCATE {{ target_schema }}.{{ target_table }}")
+            cur.execute("INSERT INTO {{ target_schema }}.{{ target_table }} SELECT * FROM staging.tmp_{{ target_table }}")
+{% elif write_mode == "upsert" %}
+            # P3-R3 + P3-R4: upsert in batches of 1000
+            rows = []  # populated upstream
+            for i in range(0, len(rows), 1000):
+                batch = rows[i:i+1000]
+                cur.executemany(
+                    "INSERT INTO {{ target_schema }}.{{ target_table }} VALUES %s ON CONFLICT DO UPDATE SET ...",
+                    batch
+                )
+{% else %}
+            # P3-R3: [MANUAL] write_mode — truncate_insert skeleton + TODO
+            cur.execute("BEGIN")
+            cur.execute("TRUNCATE {{ target_schema }}.{{ target_table }}")
+            # TODO: implement write logic for write_mode={{ write_mode }}
+            cur.execute("INSERT INTO {{ target_schema }}.{{ target_table }} SELECT * FROM staging.tmp_{{ target_table }}")
+{% endif %}
+            # P3-R5: Audit INSERT
+            cur.execute(
+                "INSERT INTO audit.phase3_load (job_name, target_table, batch_id) VALUES (%s, %s, %s)",
+                ("{{ job_name }}", "{{ target_table }}", batch_id)
+            )
+        conn.commit()  # P3-R1: COMMIT after all FK-group tables loaded
+    except psycopg2.Error:
+        conn.rollback()  # P3-R2
+        raise
+
+    # P3-R6: EventBridge completion event
+    events_client = boto3.client("events")
+    events_client.put_events(
+        Entries=[{
+            "Source": "etl.{{ job_name }}",
+            "DetailType": "Phase3Complete",
+            "Detail": '{"job_name": "{{ job_name }}", "target_table": "{{ target_table }}"}',
+            "EventBusName": "default",
+        }]
+    )

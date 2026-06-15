@@ -1,0 +1,102 @@
+{
+  "Comment": "Step Functions workflow for {{ job_name }}",
+  "StartAt": "Initialize",
+  "States": {
+    "Initialize": {
+      "Type": "Pass",
+      "Next": "Phase1_Parallel"
+    },
+    "Phase1_Parallel": {
+      "Type": "Parallel",
+      "Branches": [
+{% for phase in phases if phase.phase == 1 %}
+{% for task in phase.tasks %}
+{% set task_id = task.get("transform_id", task) if task is mapping else task %}
+        {
+          "StartAt": "{{ task_id }}",
+          "States": {
+            "{{ task_id }}": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::glue:startJobRun.sync",
+              "Parameters": {
+                "JobName": "{{ job_name }}_{{ task_id }}"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.ALL"],
+                  "MaxAttempts": 2,
+                  "IntervalSeconds": 30,
+                  "BackoffRate": 2.0
+                }
+              ],
+              "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "HandleFailure"}],
+              "End": true
+            }
+          }
+        }{% if not loop.last %},{% endif %}
+
+{% endfor %}
+{% endfor %}
+      ],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "HandleFailure"}],
+      "Next": "DataQualityGate"
+    },
+    "DataQualityGate": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "{{ job_name }}_dq_check"
+      },
+      "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "DataQualityFailed"}],
+      "Next": "Phase3_Parallel"
+    },
+    "Phase3_Parallel": {
+      "Type": "Parallel",
+      "Branches": [
+{% for phase in phases if phase.phase == 3 %}
+{% for task in phase.tasks %}
+{% set task_id = task.get("transform_id", task) if task is mapping else task %}
+        {
+          "StartAt": "{{ task_id }}",
+          "States": {
+            "{{ task_id }}": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::glue:startJobRun.sync",
+              "Parameters": {
+                "JobName": "{{ job_name }}_{{ task_id }}"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.ALL"],
+                  "MaxAttempts": 2,
+                  "IntervalSeconds": 30,
+                  "BackoffRate": 2.0
+                }
+              ],
+              "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "HandleFailure"}],
+              "End": true
+            }
+          }
+        }{% if not loop.last %},{% endif %}
+
+{% endfor %}
+{% endfor %}
+      ],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "Next": "HandleFailure"}],
+      "Next": "Success"
+    },
+    "Success": {
+      "Type": "Succeed"
+    },
+    "HandleFailure": {
+      "Type": "Fail",
+      "Error": "ETLJobFailed",
+      "Cause": "One or more ETL phases failed"
+    },
+    "DataQualityFailed": {
+      "Type": "Fail",
+      "Error": "DataQualityFailed",
+      "Cause": "Data quality check failed"
+    }
+  }
+}

@@ -1,0 +1,40 @@
+import json
+import psycopg2
+import boto3
+import os
+
+
+def lambda_handler(event, context):
+    rds_proxy_endpoint = os.environ["RDS_PROXY_ENDPOINT"]
+    db_name = os.environ["DB_NAME"]
+    secret_arn = os.environ["DB_SECRET_ARN"]
+
+    client = boto3.client("secretsmanager")
+    secret = json.loads(client.get_secret_value(SecretId=secret_arn)["SecretString"])
+
+    conn = psycopg2.connect(
+        host=rds_proxy_endpoint,
+        dbname=db_name,
+        user=secret["username"],
+        password=secret["password"],
+    )
+    conn.autocommit = False  # P2-R3
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL {{ sp_name }}()")
+            # P2-R6: Audit INSERT
+            cur.execute(
+                "INSERT INTO audit.sp_execution_log (job_name, sp_name, status) VALUES (%s, %s, %s)",
+                ("{{ job_name }}", "{{ sp_name }}", "SUCCESS")
+            )
+        conn.commit()
+    except psycopg2.errors.RaiseException as e:
+        conn.rollback()
+        raise
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+    return {"statusCode": 200, "sp_name": "{{ sp_name }}"}

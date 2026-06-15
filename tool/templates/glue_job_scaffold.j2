@@ -1,0 +1,40 @@
+import sys
+from awsglue.transforms import *
+from awsglue.utils import getResolvedOptions
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from awsglue.job import Job
+
+args = getResolvedOptions(sys.argv, ["JOB_NAME"])
+sc = SparkContext()
+glue_context = GlueContext(sc)
+spark = glue_context.spark_session
+job = Job(glue_context)
+job.init(args["JOB_NAME"], args)
+
+try:
+    # ── Phase 1: Static Data Download ──────────────────────────────────────
+{% for phase in phases if phase.phase == 1 %}
+{% for task in phase.tasks %}
+    # TODO: download {{ task }}
+{% endfor %}
+{% endfor %}
+
+    # ── Phase 2: SP Execution / Transforms ─────────────────────────────────
+{% for phase in phases if phase.phase == 2 %}
+{% for task in phase.get("tasks", []) %}
+    # TODO: {{ task.get("transform_type", "transform") }} {{ task.get("transform_id", "") }}
+{% endfor %}
+{% endfor %}
+
+    # ── Phase 3: Main Table Load ────────────────────────────────────────────
+{% for phase in phases if phase.phase == 3 %}
+{% for task in phase.get("tasks", []) %}
+    # TODO: load {{ task.get("transform_id", "") }}
+{% endfor %}
+{% endfor %}
+
+except Exception as e:
+    raise e
+finally:
+    job.commit()

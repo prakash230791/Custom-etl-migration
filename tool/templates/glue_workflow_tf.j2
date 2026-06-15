@@ -1,0 +1,32 @@
+resource "aws_glue_workflow" "{{ job_name }}" {
+  name = "{{ job_name }}"
+}
+
+resource "aws_glue_trigger" "{{ job_name }}_start" {
+  name          = "{{ job_name }}_start"
+  type          = "SCHEDULED"
+  schedule      = "{{ cron_expression }}"
+  workflow_name = aws_glue_workflow.{{ job_name }}.name
+
+  actions {
+    job_name = aws_glue_job.{{ job_name }}.name
+  }
+}
+
+resource "aws_glue_job" "{{ job_name }}" {
+  name     = "{{ job_name }}"
+  role_arn = "{{ iam_role_arn }}"
+
+  command {
+    script_location = "{{ scripts_location }}{{ job_name }}.py"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language" = "python"
+  }
+
+  glue_version      = "{{ glue_version }}"
+  number_of_workers = 2
+  worker_type       = "G.1X"
+}
