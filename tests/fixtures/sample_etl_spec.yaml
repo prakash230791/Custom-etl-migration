@@ -1,0 +1,76 @@
+job_name: etl_orders_daily
+source_system: SSIS
+pattern: THREE_PHASE_STATIC_LOAD
+stage2_permitted: true
+glue_version: "4.0"
+iam_role_arn: "${var.glue_iam_role_arn}"
+scripts_location: "s3://${var.glue_scripts_bucket}/jobs/"
+cron_expression: "cron(0 2 * * ? *)"
+staging_tables:
+  - staging.tmp_orders
+  - staging.tmp_customers
+
+phases:
+  - phase: 1
+    name: Static Data Download
+    execution: parallel
+    tasks:
+      - transform_id: source_orders
+        transform_type: source_read
+        source_id: orders_source
+        connection_type: jdbc
+        connection_ref: AzureSqlServer
+        source_type: table
+        query_or_path: dbo.Orders
+        row_count_estimate: 500000
+      - transform_id: source_customers
+        transform_type: source_read
+        source_id: customers_source
+        connection_type: jdbc
+        connection_ref: AzureSqlServer
+        query_or_path: dbo.Customers
+        row_count_estimate: 45000
+
+  - phase: 2
+    name: SP Execution
+    execution: mixed
+    sp_dependency_graph:
+      sp_init:     {depends_on: []}
+      sp_enrich:   {depends_on: [sp_init]}
+      sp_validate: {depends_on: [sp_enrich]}
+    tasks:
+      - transform_id: join_orders_customers
+        transform_type: join
+        left: df_orders_source
+        right: df_customers_source
+        join_key: customer_id
+        join_type: left
+        null_handling: include_nulls_from_right
+
+      - transform_id: call_sp_validate
+        transform_type: sp_call
+        sp_name: dbo.usp_ValidateOrders
+        sp_rewrite_strategy: keep_plpgsql
+        sp_estimated_duration_minutes: 5
+        transaction_scope: individual
+
+  - phase: 3
+    name: Main Table Load
+    execution: parallel
+    tasks:
+      - transform_id: load_orders_main
+        transform_type: target_write
+        target_schema: public
+        target_table: orders
+        write_mode: truncate_insert
+      - transform_id: load_customers_main
+        transform_type: target_write
+        target_schema: public
+        target_table: customers
+        write_mode: truncate_insert
+    transaction_groups:
+      - [orders, customers]
+
+schedule:
+  trigger_type: schedule
+  cron_expression: "cron(0 2 * * ? *)"

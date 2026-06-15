@@ -1,0 +1,39 @@
+import sys
+import psycopg2
+from awsglue.utils import getResolvedOptions
+
+args = getResolvedOptions(sys.argv, ["JOB_NAME", "rds_proxy_endpoint", "db_name", "batch_id"])
+
+# P1-R2: TRUNCATE staging table before read
+conn = psycopg2.connect(host=args["rds_proxy_endpoint"], dbname=args["db_name"])
+conn.autocommit = False  # P1-R4
+try:
+    with conn.cursor() as cur:
+        cur.execute("TRUNCATE {{ staging_table }}")
+    conn.commit()
+except Exception:
+    conn.rollback()
+    raise
+
+# Read source data
+{% if connection_type == "jdbc" %}
+df_{{ source_id }} = spark.read.jdbc(
+    url="{{ connection_ref }}",
+    table="{{ query_or_path }}",
+    properties={"driver": "com.microsoft.sqlserver.jdbc.SQLServerDriver"}
+)
+{% endif %}
+
+# P1-R5: Audit INSERT
+try:
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO audit.phase1_load (job_name, source_id, rows_loaded, batch_id) VALUES (%s, %s, %s, %s)",
+            ("{{ job_name }}", "{{ source_id }}", df_{{ source_id }}.count(), args["batch_id"])
+        )
+    conn.commit()
+except Exception:
+    conn.rollback()
+    raise
+finally:
+    conn.close()
