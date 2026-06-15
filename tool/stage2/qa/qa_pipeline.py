@@ -57,10 +57,29 @@ class QAPipeline:
         if not iac_paths:
             result.findings["QA-5"] = "WARNING: No IaC artifacts generated"
 
-        # QA-6: Test Coverage — skipped until Sprint 4 (no L5 yet)
-        result.findings["QA-6"] = "SKIPPED (Sprint 0-3)"
+        # QA-6: Test Coverage
+        generated_tests = etl_spec_context.get("generated_tests", {})
+        qa6_findings = self._run_qa6_test_coverage(spec_blocks, generated_tests)
+        if qa6_findings:
+            result.findings["QA-6"] = qa6_findings
 
         return result
+
+    def _run_qa6_test_coverage(self, spec_blocks: list, generated_tests: dict) -> list:
+        findings = []
+        all_test_content = " ".join(generated_tests.values())
+        for block in spec_blocks:
+            transform_id = block.get("transform_id")
+            if not transform_id:
+                continue
+            test_key = f"test_{transform_id}_standard"
+            if test_key not in all_test_content:
+                findings.append({
+                    "gate": "QA-6",
+                    "severity": "WARNING",
+                    "message": f"No test generated for transform {transform_id}",
+                })
+        return findings
 
     def _run_qa3_expression_confidence(self, l3_results: list) -> list:
         findings = []
