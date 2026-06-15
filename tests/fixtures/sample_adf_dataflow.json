@@ -1,0 +1,34 @@
+{
+  "name": "sample_adf_dataflow",
+  "properties": {
+    "type": "MappingDataFlow",
+    "transformations": [
+      {
+        "name": "OrdersSource",
+        "type": "source",
+        "dataset": {"referenceName": "OrdersDataset"}
+      },
+      {
+        "name": "FilterActiveOrders",
+        "type": "filter",
+        "filterCondition": "Amount > 0"
+      },
+      {
+        "name": "DeriveFullName",
+        "type": "derived",
+        "columns": [{"name": "FullName", "expression": "concat(FirstName, ' ', LastName)"}]
+      },
+      {
+        "name": "AggregateByRegion",
+        "type": "aggregate",
+        "groupBy": ["Region"],
+        "aggregates": [{"name": "TotalAmount", "expression": "sum(Amount)"}]
+      },
+      {
+        "name": "StagingSink",
+        "type": "sink",
+        "dataset": {"referenceName": "StagingDataset"}
+      }
+    ]
+  }
+}

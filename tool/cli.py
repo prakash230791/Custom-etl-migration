@@ -30,12 +30,13 @@ def stage1(source_file, output):
 
     path = Path(source_file)
     if path.suffix == ".dtsx":
-        parser = SsisParser()
+        parsed = SsisParser().parse(str(path))
+    elif path.suffix == ".json":
+        from tool.stage1.parsers.adf_parser import AdfParser
+        parsed = AdfParser().parse(str(path))
     else:
-        click.echo(f"ADF parser not yet implemented (Sprint 2). Source: {source_file}")
+        click.echo(f"Unsupported file type: {path.suffix}. Expected .dtsx or .json")
         return
-
-    parsed = parser.parse(str(path))
     classified = PatternClassifier().classify(parsed)
     parsed["pattern"] = classified["pattern"]
     parsed["sp_dependency_graph"] = classified["sp_dependency_graph"]

@@ -1,0 +1,82 @@
+{
+  "name": "etl_orders_adf",
+  "properties": {
+    "activities": [
+      {
+        "name": "Copy Orders from SQL",
+        "type": "Copy",
+        "dependsOn": [],
+        "typeProperties": {
+          "source": {
+            "type": "SqlSource",
+            "sqlReaderQuery": "SELECT OrderId, CustomerId, Amount FROM dbo.Orders"
+          },
+          "sink": {
+            "type": "SqlSink",
+            "writeBehavior": "insert",
+            "tableOption": "staging.tmp_orders"
+          }
+        },
+        "inputs": [
+          {"referenceName": "SqlServerLinkedService", "type": "LinkedServiceReference"}
+        ],
+        "outputs": [
+          {"referenceName": "StagingLinkedService", "type": "LinkedServiceReference"}
+        ]
+      },
+      {
+        "name": "Execute SP ValidateOrders",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [
+          {"activity": "Copy Orders from SQL", "dependencyConditions": ["Succeeded"]}
+        ],
+        "typeProperties": {
+          "storedProcedureName": "dbo.usp_ValidateOrders"
+        }
+      },
+      {
+        "name": "Run Data Flow",
+        "type": "ExecuteDataFlow",
+        "dependsOn": [
+          {"activity": "Execute SP ValidateOrders", "dependencyConditions": ["Succeeded"]}
+        ],
+        "typeProperties": {
+          "dataFlow": {
+            "referenceName": "sample_adf_dataflow",
+            "type": "DataFlowReference"
+          }
+        }
+      },
+      {
+        "name": "Loop Over Items",
+        "type": "ForEach",
+        "dependsOn": [
+          {"activity": "Run Data Flow", "dependencyConditions": ["Succeeded"]}
+        ],
+        "typeProperties": {
+          "items": {"value": "@pipeline().parameters.items", "type": "Expression"},
+          "activities": [
+            {"name": "Inner Copy", "type": "Copy", "dependsOn": [], "typeProperties": {}}
+          ]
+        }
+      }
+    ],
+    "parameters": {
+      "batchId": {"type": "string", "defaultValue": ""},
+      "targetEnv": {"type": "string", "defaultValue": "prod"}
+    }
+  },
+  "triggers": [
+    {
+      "name": "DailyTrigger",
+      "properties": {
+        "type": "ScheduleTrigger",
+        "recurrence": {
+          "frequency": "Day",
+          "interval": 1,
+          "startTime": "2026-01-01T02:00:00Z"
+        }
+      }
+    }
+  ]
+}
