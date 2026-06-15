@@ -22,7 +22,33 @@ def pre_screen(source_path, output_csv):
 @click.option("--output", default="requirements-docs/")
 def stage1(source_file, output):
     """Parse SSIS/ADF file and generate requirements document."""
-    click.echo(f"Stage 1: {source_file} (not implemented until Sprint 1)")
+    from pathlib import Path
+    from tool.stage1.parsers.ssis_parser import SsisParser
+    from tool.stage1.analysers.pattern_classifier import PatternClassifier
+    from tool.stage1.writers.mermaid_generator import MermaidGenerator
+    from tool.stage1.writers.requirements_writer import RequirementsWriter
+
+    path = Path(source_file)
+    if path.suffix == ".dtsx":
+        parser = SsisParser()
+    else:
+        click.echo(f"ADF parser not yet implemented (Sprint 2). Source: {source_file}")
+        return
+
+    parsed = parser.parse(str(path))
+    classified = PatternClassifier().classify(parsed)
+    parsed["pattern"] = classified["pattern"]
+    parsed["sp_dependency_graph"] = classified["sp_dependency_graph"]
+    mermaid = MermaidGenerator().generate_sp_dag_mermaid(classified["sp_dependency_graph"])
+    parsed["sp_dag_mermaid"] = mermaid
+
+    output_dir = Path(output) / parsed["job_name"]
+    output_dir.mkdir(parents=True, exist_ok=True)
+    requirements_path = output_dir / "REQUIREMENTS.md"
+    RequirementsWriter().write(parsed, str(requirements_path))
+    click.echo(f"Stage 1 complete: {requirements_path}")
+    click.echo(f"Manual items: {parsed['manual_item_count']}")
+    click.echo("Next: review and sign off REQUIREMENTS.md, then run stage2")
 
 
 @main.command("stage2")

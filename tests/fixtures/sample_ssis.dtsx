@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DTS:Executable xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+    DTS:ExecutableType="SSIS.Package.3"
+    DTS:ObjectName="etl_orders_daily">
+  <DTS:Variables>
+    <DTS:Variable DTS:ObjectName="BatchId" DTS:DataType="8">
+      <DTS:VariableValue>0</DTS:VariableValue>
+    </DTS:Variable>
+  </DTS:Variables>
+  <DTS:ConnectionManagers>
+    <DTS:ConnectionManager DTS:ObjectName="AzureSqlServer" DTS:DTSID="{CM1}">
+      <DTS:ObjectData>
+        <DTS:ConnectionManager DTS:ConnectionString="[REDACTED — never store credentials]" />
+      </DTS:ObjectData>
+    </DTS:ConnectionManager>
+  </DTS:ConnectionManagers>
+  <DTS:Executables>
+    <DTS:Executable DTS:ExecutableType="Microsoft.Pipeline" DTS:ObjectName="Data Flow Task">
+      <DTS:ObjectData>
+        <pipeline:components xmlns:pipeline="www.microsoft.com/SqlServer/Dts/Pipeline">
+          <pipeline:component pipeline:componentClassID="DTSAdapter.OleDbSource"
+              pipeline:name="OleDb Source Orders">
+            <pipeline:properties>
+              <pipeline:property pipeline:name="SqlCommand">SELECT OrderId, CustomerId, Amount FROM dbo.Orders</pipeline:property>
+            </pipeline:properties>
+            <pipeline:connections>
+              <pipeline:connection pipeline:name="OleDbConnection" pipeline:description="AzureSqlServer" />
+            </pipeline:connections>
+          </pipeline:component>
+          <pipeline:component pipeline:componentClassID="DTSTransform.DerivedColumn"
+              pipeline:name="Derived Column Transform">
+            <pipeline:outputs>
+              <pipeline:output pipeline:name="Derived Column Output">
+                <pipeline:outputColumns>
+                  <pipeline:outputColumn pipeline:name="FullName" />
+                </pipeline:outputColumns>
+              </pipeline:output>
+            </pipeline:outputs>
+          </pipeline:component>
+          <pipeline:component pipeline:componentClassID="DTSTransform.Lookup"
+              pipeline:name="Lookup Customer">
+            <pipeline:properties>
+              <pipeline:property pipeline:name="NoMatchBehavior">redirect</pipeline:property>
+            </pipeline:properties>
+          </pipeline:component>
+          <pipeline:component pipeline:componentClassID="DTSAdapter.OleDbDestination"
+              pipeline:name="OleDb Destination Staging">
+            <pipeline:properties>
+              <pipeline:property pipeline:name="OpenRowset">staging.tmp_orders</pipeline:property>
+            </pipeline:properties>
+            <pipeline:connections>
+              <pipeline:connection pipeline:name="OleDbConnection" pipeline:description="AzureSqlServer" />
+            </pipeline:connections>
+          </pipeline:component>
+        </pipeline:components>
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+        DTS:ObjectName="Execute SP ValidateOrders">
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask"
+            SQLTask:SqlStatementSource="EXECUTE dbo.usp_ValidateOrders"
+            SQLTask:Connection="AzureSqlServer" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+  </DTS:Executables>
+  <DTS:PrecedenceConstraints>
+    <DTS:PrecedenceConstraint DTS:From="Data Flow Task" DTS:To="Execute SP ValidateOrders" />
+  </DTS:PrecedenceConstraints>
+  <DTS:EventHandlers>
+    <DTS:EventHandler DTS:EventName="OnError" DTS:ObjectName="ErrorHandler">
+      <DTS:Executables>
+        <DTS:Executable DTS:ObjectName="Log Error" DTS:ExecutableType="Microsoft.ExecuteSQLTask" />
+      </DTS:Executables>
+    </DTS:EventHandler>
+  </DTS:EventHandlers>
+</DTS:Executable>
