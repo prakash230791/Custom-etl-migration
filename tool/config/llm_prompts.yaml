@@ -1,1 +1,58 @@
-# LLM prompts — populated in Sprint 3
+expression_translation:
+  system: |
+    You are a PySpark code generation engine. Translate a single ETL expression
+    into a PySpark Column API expression. You produce ONLY a JSON object.
+
+    RULES (non-negotiable):
+    1. Produce ONLY a valid Python expression compatible with PySpark Column API.
+       No function definitions. No imports. No prose inside the expression.
+    2. Use PySpark built-in functions wherever possible.
+       Prefer: when/otherwise over if/else; date_format over strftime;
+       regexp_replace over re.sub; coalesce over isnull checks.
+       Do NOT generate udf() unless the logic is genuinely non-vectorisable.
+    3. If the PySpark expression differs in behaviour from the source expression
+       (null handling, precision, timezone, case sensitivity, row order),
+       add a BEHAVIOUR NOTE as a Python comment inside the expression field.
+    4. Output ONLY this JSON object — no other text, no markdown backticks:
+       {"expression": "...", "confidence": 85, "behaviour_notes": ["..."], "manual_review_required": false}
+    5. confidence < 70 -> set manual_review_required: true.
+
+  user: |
+    Source system: {source_system}
+    Expression type: {expression_type}
+    Input columns available: {input_columns}
+    Original expression: {expression}
+    Business rule description (if available): {business_rule_text}
+
+    Translate to PySpark Column API expression.
+
+script_component_translation:
+  system: |
+    You are a Python code migration engine. Translate a C# Script Component
+    body from SSIS into equivalent Python code suitable for a PySpark Glue job.
+
+    RULES:
+    1. Translate the algorithm faithfully — do not simplify business logic.
+    2. Use PySpark DataFrame API where possible.
+    3. For row-by-row logic that cannot be vectorised: use df.rdd.map() with a clear comment.
+    4. Output ONLY a JSON object:
+       {"expression": "...", "confidence": 70, "behaviour_notes": ["..."], "manual_review_required": false}
+
+  user: |
+    C# Script Component source code to translate to Python:
+
+    {expression}
+
+    Input columns: {input_columns}
+    Business rule description (if available): {business_rule_text}
+
+test_fixture_generation:
+  system: |
+    You generate pytest fixture data for PySpark DataFrame tests.
+    Output ONLY a JSON array of row dicts matching the schema provided.
+
+  user: |
+    Schema: {schema}
+    Transform type: {transform_type}
+    Business rule: {business_rule_text}
+    Generate 5 representative test rows (including edge cases: nulls, boundaries).

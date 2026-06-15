@@ -40,8 +40,11 @@ class QAPipeline:
         if missing:
             result.findings["QA-2"] = missing
 
-        # QA-3: L3 Expression Confidence — skipped in Sprint 0 (no L3)
-        result.findings["QA-3"] = "SKIPPED (Sprint 0)"
+        # QA-3: L3 Expression Confidence
+        l3_results = etl_spec_context.get("l3_results", [])
+        qa3_findings = self._run_qa3_expression_confidence(l3_results)
+        if qa3_findings:
+            result.findings["QA-3"] = qa3_findings
 
         # QA-4: Transaction Pattern
         phase3_blocks = [b for b in spec_blocks if b.get("transform_type") == "target_write"]
@@ -54,7 +57,21 @@ class QAPipeline:
         if not iac_paths:
             result.findings["QA-5"] = "WARNING: No IaC artifacts generated"
 
-        # QA-6: Test Coverage — skipped in Sprint 0 (no L5)
-        result.findings["QA-6"] = "SKIPPED (Sprint 0)"
+        # QA-6: Test Coverage — skipped until Sprint 4 (no L5 yet)
+        result.findings["QA-6"] = "SKIPPED (Sprint 0-3)"
 
         return result
+
+    def _run_qa3_expression_confidence(self, l3_results: list) -> list:
+        findings = []
+        for result in l3_results:
+            if result.get("manual_review_required") and result.get("confidence", 0) >= 70:
+                findings.append({
+                    "gate": "QA-3",
+                    "severity": "WARNING",
+                    "message": (
+                        f"Expression marked manual_review_required despite confidence "
+                        f"{result['confidence']}"
+                    ),
+                })
+        return findings
